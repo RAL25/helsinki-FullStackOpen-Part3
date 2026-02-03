@@ -3,7 +3,6 @@ const express = require("express");
 const morgan = require("morgan");
 const app = express();
 
-// 3.7
 app.use(express.json());
 
 let persons = [
@@ -29,7 +28,16 @@ let persons = [
   },
 ];
 
-app.use(morgan("tiny"));
+// 3.7 and 3.8
+morgan.token("type", function (req, res) {
+  const aux = JSON.stringify(req.body);
+  return aux;
+});
+app.use(
+  morgan(
+    ":method :url :status :res[content-length] - :response-time ms | :type",
+  ),
+);
 
 app.get("/api/persons", (request, response) => {
   response.json(persons);
