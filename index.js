@@ -1,7 +1,9 @@
 // 3.1
 const express = require("express");
+const morgan = require("morgan");
 const app = express();
 
+// 3.7
 app.use(express.json());
 
 let persons = [
@@ -27,13 +29,13 @@ let persons = [
   },
 ];
 
+app.use(morgan("tiny"));
+
 app.get("/api/persons", (request, response) => {
   response.json(persons);
 });
 
 app.get("/", (request, response) => {
-  console.log(persons);
-
   response.send("<h1>Hello,World!<h1/>");
 });
 
