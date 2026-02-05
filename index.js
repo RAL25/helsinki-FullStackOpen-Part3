@@ -1,6 +1,7 @@
 // 3.1
 const express = require("express");
 const morgan = require("morgan");
+const cors = require("cors");
 const app = express();
 
 app.use(express.json());
@@ -28,6 +29,10 @@ let persons = [
   },
 ];
 
+// Integration test with front end
+// 3.11
+app.use(express.static("build"));
+
 // 3.7 and 3.8
 morgan.token("body", function (req, res) {
   const aux = JSON.stringify(req.body);
@@ -38,6 +43,10 @@ app.use(
     ":method :url :status :res[content-length] - :response-time ms | :body",
   ),
 );
+
+// To integrate with the front end, need the CORS
+// Both of parts (front and back) are in PORT 3001
+app.use(cors());
 
 app.get("/api/persons", (request, response) => {
   response.json(persons);
