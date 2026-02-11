@@ -1,3 +1,4 @@
+require("dotenv").config();
 // 3.1
 const express = require("express");
 const morgan = require("morgan");
