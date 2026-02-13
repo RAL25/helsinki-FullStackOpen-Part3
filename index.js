@@ -8,28 +8,16 @@ const app = express();
 
 app.use(express.json());
 
-let persons = [
-  {
-    id: 1,
-    name: "Arto Hellas",
-    number: "040-123456",
-  },
-  {
-    id: 2,
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
-  },
-  {
-    id: 3,
-    name: "Dan Abramov",
-    number: "12-43-234345",
-  },
-  {
-    id: 4,
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
-  },
-];
+// 3.16
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message);
+
+  if (error.name === "CastError") {
+    return response.status(400).send({ error: "malformated id" });
+  }
+
+  next(error);
+};
 
 // Integration test with front end
 // 3.11
@@ -50,20 +38,20 @@ app.use(
 // Both of parts (front and back) are in PORT 3001
 app.use(cors());
 
+app.get("/", (request, response) => {
+  response.send("<h1>Hello,World!<h1/>");
+});
+
 app.get("/api/persons", (request, response) => {
   Person.find({}).then((persons) => {
     response.json(persons);
   });
 });
 
-app.get("/", (request, response) => {
-  response.send("<h1>Hello,World!<h1/>");
-});
-
 // 3.2
-app.get("/info", (request, response) => {
+app.get("/info", async (request, response) => {
+  const personsLength = await Person.countDocuments({});
   const date = new Date();
-  const personsLength = persons.length;
   response.send(`
     <p>Phonebook has info for ${personsLength} people<p/>
     ${date}
@@ -71,23 +59,31 @@ app.get("/info", (request, response) => {
 });
 
 // 3.3
-app.get("/api/persons/:id", (request, response) => {
+app.get("/api/persons/:id", (request, response, next) => {
   const id = request.params.id;
-  Person.findById(request.params.id).then((person) => {
-    response.json(person);
-  });
+  Person.findById(id)
+    .then((person) => {
+      if (person) {
+        response.json(person);
+      } else {
+        response.status(404).end();
+      }
+    })
+    .catch((error) => next(error));
 });
 
 // 3.4
-app.delete("/api/persons/:id", (request, response) => {
-  const id = Number(request.params.id);
-  const personId = persons.findIndex((person) => person.id === id);
-  persons.splice(personId, 1);
-  response.send(`Pessoa com id ${id} removido`);
+app.delete("/api/persons/:id", (request, response, next) => {
+  // 3.15
+  Person.findByIdAndDelete(request.params.id)
+    .then((result) => {
+      response.status(204).end();
+    })
+    .catch((error) => next(error));
 });
 
 // 3.5
-app.post("/api/persons", (request, response) => {
+app.post("/api/persons", async (request, response) => {
   const body = request.body;
 
   // 3.6
@@ -96,17 +92,13 @@ app.post("/api/persons", (request, response) => {
     return response.status(400).json({
       error: `${aux} missing`,
     });
+  } else if (await Person.find({ name: body.name })) {
+    return response.status(409).json({
+      error: "name must be unique",
+    });
   }
-  // else if ((aux = Person.find({ name: body.name }))) {
-  //   console.log(typeof aux);
-
-  //   return response.status(409).json({
-  //     error: "name must be unique",
-  //   });
-  // }
 
   const person = new Person({
-    id: Math.floor(Math.random() * 1000),
     name: body.name,
     number: body.number,
   });
@@ -114,6 +106,25 @@ app.post("/api/persons", (request, response) => {
   person.save().then((personSave) => {
     response.json(personSave);
   });
+});
+
+// 3.17
+app.put("/api/persons/:id", (request, response, next) => {
+  const { name, number } = request.body;
+  Person.findById(request.params.id)
+    .then((person) => {
+      if (!person) {
+        return response.status(404).end();
+      }
+
+      person.name = name;
+      person.number = number;
+
+      return person.save().then((updatePerson) => {
+        response.json(updatePerson);
+      });
+    })
+    .catch((error) => next(error));
 });
 
 const PORT = process.env.PORT || 3001;
