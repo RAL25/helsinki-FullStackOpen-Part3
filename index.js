@@ -83,7 +83,7 @@ app.delete("/api/persons/:id", (request, response, next) => {
 });
 
 // 3.5
-app.post("/api/persons", async (request, response) => {
+app.post("/api/persons", (request, response) => {
   const body = request.body;
 
   // 3.6
@@ -91,10 +91,6 @@ app.post("/api/persons", async (request, response) => {
     const aux = !body.name ? "name" : "number";
     return response.status(400).json({
       error: `${aux} missing`,
-    });
-  } else if (await Person.find({ name: body.name })) {
-    return response.status(409).json({
-      error: "name must be unique",
     });
   }
 
